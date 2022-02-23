@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body id="body">
+<h3>
+    Задание 1<br>
+    Задание 1
+Реализовать веб-страницу для поиска фильмов.
+При открытии страницы пользователю доступна только форма для ввода названия фильма (или части названия) и выбора типа (movie, series, episode).
+После того как пользователь ввел данные и нажал на кнопку Search, необходимо отправить соответствующий запрос к API ресурса OMDB 
+(http://www.omdbapi.com/) с помощью AJAX. Если в качестве ответа на запрос вы получили список фильмов, то его необходимо отобразить под формой поиска. 
+Если по заданным критериям не будут найдены фильмы, то отобразите сообщение Movie not found!. Учтите, что OMDB по умолчанию возвращает только первые
+10 фильмов. Поэтому необходимо реализовать пагинацию для тех случаев, когда под критерии поиска подходит больше, чем 10 фильмов.
+Пагинация – это порядковая нумерация страниц, которая обычно находится вверху или внизу страниц сайта. Вероятно, вы видели в интернет-магазинах на 
+страницах с товарами кнопки с цифрами 1, 2, 3 и т. д., при нажатии на которые отбражается другой блок товаров. Вот такие кнопки и называют пагинацией.
+Таким образом, при первом поиске необходимо выводить первые 10 фильмов и кнопки для перехода по страницам. При клике на такую кнопку необходимо отправить 
+запрос с указанием в параметрах требуемой страницы и полученный результат вывести на место текущего списка фильмов. Возле каждого фильма должна быть 
+кнопка Details, при нажатии на которую будет выводиться подробная информация о фильме. Эту информацию необходимо выводить на этой же странице сразу
+под списком найденных фильмов и пагинацией. Все запросы необходимо отправлять, используя AJAX. То есть при нажатии на любые кнопки ваша веб-страница не должна
+обновляться. Ссылка на API OMDB: http://www.omdbapi.com/ (необходимо зарегистрироваться для получения API KEY). Ссылка на альтернативный API с фильмами 
+(для того случая, если OMDB не будет работать): https://developers.themoviedb.org/3/search/search-movies. Если же и этот API не будет работать, то вам 
+придется самостоятельно найти другой доступный ресурс и адаптировать под него задание.
+</h3>
+
+    <form id="form">
+        <h3 style="text-align: center;">Search</h3>
+        <div class="border">
+            <div class="inputForm">
+                <label for="title">title</label>
+                <input type="text" id="title" name="title" required>          <!-- required - проверяет чтобы форма была заполнена -->
+            </div>
+            <div class="inputForm">
+                <label for="type">type</label>
+                <select name="type" id="type">
+                    <option value="movie">movie</option>
+                    <option value="series">series</option>
+                    <option value="episode">episode</option>
+                </select>        
+            </div>
+            <input type="submit" value="Search" id="submit">
+        </div>        
+    </form>
+    <div id="foundMovies"></div>
+    <div id="paginator"></div>
+    <div id="completeFilmInfo"></div>    
+    <script>
+        let paginator = document.getElementById("paginator");       //сюда выводим список страниц
+        let completeFilmInfo = document.getElementById('completeFilmInfo');
+        let body = document.getElementById('body');
+        let receivedData = {};
+        let foundMovies = document.getElementById('foundMovies');
+        const title = document.getElementById('title');                     //по id находим форму 
+        const form = document.getElementById('form');                       //по id находим форму   
+        form.addEventListener('submit', (event) => {                        //функция нажатия кнопки submit
+        event.preventDefault();                                             //отменяем перезагрузку страницы
+        foundMovies.textContent = '';
+        let num = 0;                                                        //счетчик
+        fetch(`http://www.omdbapi.com/?s=${title.value}&type=${type.value}&apikey=bc5df9f6`)        // fetch прокидывает в then ответ, который можно преобразовать в JS объект или текст.
+            .then((response) => response.json())                                                        // и пропрасывает преобразованный ответ в следующий then
+            .then((json) => {
+                let foundMoviesInTotal = json.Search.length;    //всего фильмов
+                let filmsToBeShown = 3;                         //сколько отображаем сначала
+                let filmsToBeShownPage = Math.ceil(foundMoviesInTotal / filmsToBeShown); //кол-во страниц
+                            
+                let page = "";                                              //выводим список страниц
+                for (let i = 0; i < filmsToBeShownPage; i++) {              //выводим кнопки пагинации
+                    page += `<button id="pagination${i+1}" class="pagination">${i + 1}</button>`;
+                }
+                paginator.innerHTML = page;
+ 
+                json.Search.forEach(element => {                        //выводим все фильмы
+                let parentDiv = document.createElement('div');
+                parentDiv.id = `parentDiv${num}`;
+                parentDiv.classList.add('parentDiv');
+                foundMovies.append(parentDiv);
+                
+                let poster = document.createElement('div');
+                poster.classList.add('poster');
+                poster.innerHTML = `<img src="${element.Poster}" alt="Poster" style=" width: 150px; height: 230px;">`
+                parentDiv.append(poster);
+
+                let shortInfo = document.createElement('div');
+                shortInfo.classList.add('shortInfo');
+                parentDiv.append(shortInfo);
+
+                let filmType = document.createElement('div');
+                filmType.textContent = `${type.value}`;
+                let filmName = document.createElement('div');
+                filmName.textContent = `${element.Title}`;
+                filmName.classList.add("filmName");
+                let filmYear = document.createElement('div');
+                filmYear.textContent = `${element.Year}`;
+                filmYear.style = "font-size: 150%"
+
+                shortInfo.append(filmType);
+                shortInfo.append(filmName);
+                shortInfo.append(filmYear);
+
+                let button = document.createElement('button');
+                button.id = `button${num}`;
+                button.classList.add('button');
+                button.textContent = "Details"
+                shortInfo.append(button);
+
+                num++;
+            })
+             
+            let parentDiv = document.querySelectorAll(".parentDiv");        //выводим первые 3 фильма 
+            for (let j = 0; j < parentDiv.length; j++) {
+                if (j < filmsToBeShown) {
+                    parentDiv[j].style.display = "flex";
+                }
+            }
+
+            let mainPage = document.getElementById("pagination1");
+            mainPage.classList.add("paginatorActive");
+
+            //листаем
+            paginator.addEventListener('click', (event) => {
+                let targetSearch = event.target; // где был клик?
+                if (targetSearch.tagName !== 'BUTTON') return
+                else {
+                    let number = targetSearch.id.replace(/[^\d]/g,'');
+                    parentDiv.forEach(element => {          //при нажатии прячем все найденые фильмы
+                        element.style.display = "none";
+                        for (let movie = (number - 1) * 3; movie < (number * 3); movie++) {
+                            if (movie > parentDiv.length) return
+                            document.getElementById(`parentDiv${movie}`).style.display = "flex";
+                              
+                        }
+                    })
+                }
+            })
+
+            foundMovies.addEventListener('click', (event) => {
+            let target = event.target; // где был клик?
+            if (target.tagName !== 'BUTTON') return
+            else {
+                completeFilmInfo.textContent = '';
+                let elemId = target.id.replace(/[^\d]/g,''); 
+                let bigPoster = document.createElement('div');
+                console.log(json.Search[elemId]);
+                bigPoster.innerHTML = `<img src="${json.Search[elemId].Poster}" alt="Poster" style=" width: 340px; height: 500px;">`
+                completeFilmInfo.append(bigPoster);
+                let completeInfo = document.createElement('div');
+                completeInfo.classList.add('completeInfo');
+                completeFilmInfo.append(completeInfo);
+                fetch(`http://www.omdbapi.com/?i=${json.Search[elemId].imdbID}&apikey=bc5df9f6`)        // fetch прокидывает в then ответ, который можно преобразовать в JS объект или текст.
+                    .then((response) => response.json())                                                        // и пропрасывает преобразованный ответ в следующий then
+                    .then((json) => {
+                        let completeInfoTitle = document.createElement('div');
+                        completeInfoTitle.textContent = `Title:${json.Title}`;
+                        completeInfo.append(completeInfoTitle);
+
+                        let completeInfoReleased = document.createElement('div');
+                        completeInfoReleased.textContent = `Released:${json.Released}`;
+                        completeInfo.append(completeInfoReleased);
+
+                        let completeInfoGenre = document.createElement('div');
+                        completeInfoGenre.textContent = `Genre:${json.Genre}`;
+                        completeInfo.append(completeInfoGenre);
+
+                        let completeInfoCountry = document.createElement('div');
+                        completeInfoCountry.textContent = `Country:${json.Country}`;
+                        completeInfo.append(completeInfoCountry);
+
+                        let completeInfoDirector = document.createElement('div');
+                        completeInfoDirector.textContent = `Director:${json.Director}`;
+                        completeInfo.append(completeInfoDirector);
+
+                        let completeInfoWriter = document.createElement('div');
+                        completeInfoWriter.textContent = `Writer:${json.Writer}`;
+                        completeInfo.append(completeInfoWriter);
+
+                        let completeInfoActors = document.createElement('div');
+                        completeInfoActors.textContent = `Actors:${json.Actors}`;
+                        completeInfo.append(completeInfoActors);
+
+                        let completeInfoAwards = document.createElement('div');
+                        completeInfoAwards.textContent = `Awards:${json.Awards}`;
+                        completeInfo.append(completeInfoAwards);
+
+
+
+                console.log(json);
+
+            })
+            }
+            })
+         
+            
+        })                                
+    })
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+    </script>
+</body>
+
+</html>
